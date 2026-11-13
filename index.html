@@ -1,0 +1,839 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Сачок для думок</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --blue:#2B4BF2; --yellow:#FFC629; --teal:#149A8C; --coral:#F0453A;
+  --dark:#14161F; --light:#F2F3F7; --white:#FFFFFF; --pest:#3A3452;
+  --font:"IBM Plex Sans", system-ui, sans-serif;
+  --shadow:0 10px 0 rgba(20,22,31,.22);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;overflow:hidden;background:#0E1020;font-family:var(--font);color:var(--dark)}
+button{font-family:inherit;cursor:pointer;border:0;background:none;color:inherit}
+
+/* ---------- 16:9 сцена з letterbox ---------- */
+#stage{
+  position:absolute;left:50%;top:50%;width:1920px;height:1080px;
+  transform-origin:0 0;overflow:hidden;
+  background:
+    radial-gradient(circle at 30% 45%, rgba(255,255,255,.10) 0, rgba(255,255,255,0) 55%),
+    radial-gradient(circle at 85% 30%, rgba(255,198,41,.10) 0, rgba(255,198,41,0) 40%),
+    var(--blue);
+  user-select:none;-webkit-user-select:none;
+}
+#stage::before{ /* легкий «ефірний» візерунок */
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background-image:radial-gradient(rgba(255,255,255,.10) 2px, transparent 2.5px);
+  background-size:48px 48px;
+}
+
+/* ---------- Шапка ---------- */
+.header{position:absolute;left:70px;top:46px;width:1240px;color:var(--white)}
+.badges{display:flex;gap:18px;align-items:center}
+.badge{
+  display:inline-flex;align-items:center;gap:14px;height:56px;padding:0 28px;border-radius:999px;
+  font-size:28px;font-weight:700;letter-spacing:.08em;background:var(--dark);color:var(--white);
+  box-shadow:var(--shadow);
+}
+.badge .dot{width:16px;height:16px;border-radius:50%;background:var(--coral);box-shadow:0 0 0 5px rgba(240,69,58,.3);animation:blink 2.4s ease-in-out infinite}
+@keyframes blink{50%{opacity:.35}}
+.badge.license{background:var(--yellow);color:var(--dark);border:4px solid var(--dark);display:none}
+.badge.license.show{display:inline-flex;animation:stamp .6s cubic-bezier(.2,1.6,.4,1)}
+h1{font-size:84px;font-weight:700;line-height:1.05;margin-top:22px;letter-spacing:-.01em;text-shadow:0 6px 0 rgba(20,22,31,.25)}
+.sub{font-size:34px;font-weight:400;margin-top:14px;line-height:1.3;opacity:.95}
+
+/* ---------- Хмаринки на полі ---------- */
+.cloud{
+  position:absolute;width:270px;height:185px;padding:0;
+  -webkit-tap-highlight-color:transparent;outline:none;
+}
+.cloud .sway{position:absolute;inset:0;animation:sway var(--dur,6s) ease-in-out infinite;animation-delay:var(--delay,0s)}
+@keyframes sway{
+  0%,100%{transform:translate(0,0) rotate(var(--r1,-1.5deg))}
+  50%{transform:translate(var(--dx,6px),calc(var(--amp,12px) * -1)) rotate(var(--r2,1.5deg))}
+}
+.cloud svg{position:absolute;left:-6px;top:-6px;width:310px;height:240px;overflow:visible;filter:drop-shadow(0 10px 0 rgba(20,22,31,.22))}
+.cloud .fill{fill:var(--white);stroke:var(--dark);stroke-width:7;stroke-linejoin:round;transition:fill .3s}
+.cloud .bub{fill:var(--white);stroke:var(--dark);stroke-width:6}
+.cloud .num{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:2px;
+  font-size:104px;font-weight:700;line-height:1;color:var(--dark);
+}
+.cloud .num small{font-size:56px;font-weight:700;align-self:flex-end;margin-bottom:46px;opacity:.6}
+.cloud:hover .fill{fill:#FFF6D6}
+.cloud.hidden{visibility:hidden}
+.cloud.used{cursor:default}
+.cloud.used .sway{animation:none}
+.cloud.used svg{filter:none}
+.cloud.used .fill,.cloud.used .bub{fill:rgba(255,255,255,.06);stroke:rgba(255,255,255,.32);stroke-dasharray:14 12;stroke-width:5}
+.cloud.used .num{color:rgba(255,255,255,.28)}
+.cloud.used .num small{display:none}
+.cloud.used:hover .fill{fill:rgba(255,255,255,.06)}
+.cloud.nope{animation:nope .4s ease}
+@keyframes nope{25%{transform:translateX(-10px)}75%{transform:translateX(10px)}}
+
+/* ---------- Лея ---------- */
+#lea{position:absolute;left:1250px;top:322px;width:380px;height:578px;transform-origin:50% 100%}
+#lea img,#lea svg{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:50% 100%}
+#lea svg{display:none}
+#lea.fallback svg{display:block}
+#lea.fallback img{display:none}
+#lea.happy{animation:happy 1.1s ease-in-out 3}
+@keyframes happy{
+  0%,100%{transform:translateY(0) rotate(0)}
+  25%{transform:translateY(-46px) rotate(-4deg)}
+  50%{transform:translateY(0) rotate(0)}
+  75%{transform:translateY(-28px) rotate(4deg)}
+}
+
+/* ---------- Банка пілота ---------- */
+#jarWrap{position:absolute;right:40px;bottom:26px;width:500px;height:420px}
+#jar{position:absolute;right:0;top:0;width:260px;height:295px;transform-origin:50% 100%}
+#jar svg{width:100%;height:100%;overflow:visible;filter:drop-shadow(0 10px 0 rgba(20,22,31,.25))}
+#jar.bump{animation:bump .5s cubic-bezier(.3,1.6,.5,1)}
+@keyframes bump{40%{transform:scale(1.08,.94)}70%{transform:scale(.97,1.04)}}
+#jarItems{position:absolute;left:38px;top:104px;width:184px;height:170px}
+.mini{position:absolute;width:58px;height:40px;animation:pop .45s cubic-bezier(.2,1.6,.4,1)}
+.mini svg{width:100%;height:100%;overflow:visible;filter:drop-shadow(0 0 10px rgba(255,198,41,.8))}
+@keyframes pop{from{transform:scale(0)}}
+.counter{
+  position:absolute;right:0;bottom:0;height:84px;padding:0 34px;border-radius:999px;
+  display:flex;align-items:center;gap:14px;white-space:nowrap;
+  background:var(--white);border:5px solid var(--dark);box-shadow:var(--shadow);
+  font-size:32px;font-weight:600;
+}
+.counter b{font-weight:700;font-size:38px}
+.counter.full{background:var(--yellow)}
+
+/* ---------- Кутові кнопки ---------- */
+.corner{position:absolute;right:40px;top:40px;display:flex;gap:16px;z-index:60}
+.mini-btn{
+  height:68px;min-width:68px;padding:0 22px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;gap:10px;
+  background:rgba(20,22,31,.55);color:var(--white);font-size:30px;font-weight:600;
+  border:3px solid rgba(255,255,255,.35);transition:background .2s;
+}
+.mini-btn:hover{background:rgba(20,22,31,.85)}
+.mini-btn.q{font-size:36px;font-weight:700;width:68px;padding:0}
+
+/* ---------- Затемнення та картка ---------- */
+#dim{position:absolute;inset:0;background:rgba(10,12,28,.74);opacity:0;pointer-events:none;transition:opacity .45s;z-index:20}
+#dim.on{opacity:1;pointer-events:auto}
+
+#card{
+  position:absolute;left:300px;top:120px;width:1150px;height:580px;z-index:30;display:none;
+  transform-origin:50% 50%;
+}
+#card.show{display:block}
+#card .cardsvg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;filter:drop-shadow(0 16px 0 rgba(0,0,0,.28))}
+#card .fill{fill:var(--white);stroke:var(--dark);stroke-width:11;stroke-linejoin:round;transition:fill .5s}
+#card .bub{fill:var(--white);stroke:var(--dark);stroke-width:9;transition:fill .5s}
+#card.is-pest .fill,#card.is-pest .bub{fill:var(--pest)}
+#card.is-partner .fill,#card.is-partner .bub{fill:var(--yellow)}
+#card.is-partner .cardsvg{filter:drop-shadow(0 16px 0 rgba(0,0,0,.28)) drop-shadow(0 0 50px rgba(255,198,41,.65))}
+
+.masked{position:absolute;inset:0;-webkit-mask-size:100% 100%;mask-size:100% 100%;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;pointer-events:none}
+#noise{opacity:0;transition:opacity .5s;mix-blend-mode:screen}
+#card.is-pest #noise{opacity:.34}
+#noise .grain{position:absolute;inset:0;background-size:256px 256px;animation:grain 1.2s steps(4) infinite}
+@keyframes grain{
+  0%{background-position:0 0} 25%{background-position:-80px 40px}
+  50%{background-position:60px -70px} 75%{background-position:-30px -110px} 100%{background-position:0 0}
+}
+#noise .scan{position:absolute;left:0;right:0;height:120px;top:-120px;
+  background:linear-gradient(to bottom,rgba(255,255,255,0),rgba(255,255,255,.35),rgba(255,255,255,0));
+  animation:scan 4.5s linear infinite}
+@keyframes scan{to{transform:translateY(820px)}}
+#flash{background:#FFFBEA;opacity:0}
+
+#cardNum{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:400px;font-weight:700;color:var(--dark);line-height:1;transition:opacity .3s}
+#card:not(.is-closed) #cardNum{opacity:0}
+.textbox{position:absolute;left:170px;right:170px;top:120px;bottom:120px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+#cardText{
+  width:100%;text-align:center;font-weight:700;line-height:1.18;color:var(--white);
+  overflow-wrap:break-word;text-wrap:balance;transition:color .5s;
+}
+#card.is-partner #cardText{color:var(--dark)}
+#cardLabel{
+  position:absolute;left:50%;top:-86px;transform:translateX(-50%);height:66px;padding:0 34px;border-radius:999px;
+  display:flex;align-items:center;gap:12px;white-space:nowrap;
+  font-size:34px;font-weight:700;letter-spacing:.04em;color:var(--white);background:var(--coral);
+  border:4px solid var(--dark);box-shadow:var(--shadow);opacity:0;transition:opacity .3s,background .4s;
+}
+#card.is-pest #cardLabel,#card.is-partner #cardLabel{opacity:1}
+#card.is-partner #cardLabel{background:var(--teal)}
+
+.spark{position:absolute;width:60px;height:60px;margin:-30px 0 0 -30px;pointer-events:none;z-index:35}
+.spark svg{width:100%;height:100%}
+
+/* ---------- Підказка / своя версія ---------- */
+.slot{
+  position:absolute;left:325px;top:730px;width:1100px;z-index:31;
+  padding:26px 40px;border-radius:36px;border:5px solid var(--dark);box-shadow:var(--shadow);
+  opacity:0;transform:translateY(60px);pointer-events:none;transition:opacity .35s,transform .45s cubic-bezier(.2,1.3,.4,1);
+}
+.slot.show{opacity:1;transform:none;pointer-events:auto}
+#hint{background:var(--yellow);font-size:34px;line-height:1.3;font-weight:600;text-align:center}
+#hint b{font-weight:700}
+
+/* ---------- Пульт ---------- */
+#controls{position:absolute;left:0;width:1750px;top:946px;z-index:32;display:flex;justify-content:center;gap:22px;pointer-events:none}
+#controls.off .pill{opacity:0;transform:translateY(30px);pointer-events:none}
+.pill{
+  pointer-events:auto;height:92px;padding:0 48px;border-radius:999px;display:inline-flex;align-items:center;gap:18px;
+  background:var(--white);color:var(--dark);font-size:34px;font-weight:700;border:5px solid var(--dark);box-shadow:var(--shadow);
+  transition:transform .25s,opacity .3s,background .2s;
+}
+.pill:hover{transform:translateY(-4px)}
+.pill:active{transform:translateY(3px);box-shadow:0 4px 0 rgba(20,22,31,.22)}
+.pill.primary{background:var(--yellow)}
+.pill.on{background:var(--light);box-shadow:inset 0 0 0 5px var(--yellow),var(--shadow)}
+.pill.teal{background:var(--teal);color:var(--white)}
+.pill.ghost{background:rgba(255,255,255,.14);color:var(--white);border-color:rgba(255,255,255,.55);box-shadow:none}
+.pill[disabled]{opacity:.4;pointer-events:none}
+kbd{
+  font-family:inherit;font-size:28px;font-weight:700;min-width:54px;height:54px;padding:0 14px;border-radius:999px;
+  display:inline-flex;align-items:center;justify-content:center;background:rgba(20,22,31,.12);
+}
+.pill.teal kbd,.pill.ghost kbd{background:rgba(255,255,255,.2)}
+
+/* ---------- Сачок, що літає ---------- */
+#net{position:absolute;left:0;top:0;width:340px;height:340px;z-index:34;pointer-events:none;opacity:0;transform-origin:110px 110px}
+#net svg{width:100%;height:100%;overflow:visible}
+#flyer{position:absolute;width:270px;height:185px;z-index:33;pointer-events:none;display:none}
+
+/* ---------- Модальні вікна ---------- */
+.modal{position:absolute;z-index:50;border-radius:44px;border:6px solid var(--dark);box-shadow:0 18px 0 rgba(0,0,0,.3);display:none}
+.modal.show{display:block;animation:rise .5s cubic-bezier(.2,1.4,.4,1)}
+@keyframes rise{from{opacity:0;transform:translateY(50px) scale(.92)}}
+@keyframes stamp{0%{transform:scale(2.4) rotate(-14deg);opacity:0}100%{transform:scale(1) rotate(-3deg);opacity:1}}
+
+#final{left:110px;top:300px;width:1120px;padding:56px 60px;background:var(--dark);color:var(--white);text-align:center}
+#final h2{font-size:72px;line-height:1.1;font-weight:700}
+#final .stamp{
+  display:inline-block;margin-top:36px;padding:18px 44px;border-radius:999px;background:var(--yellow);color:var(--dark);
+  font-size:50px;font-weight:700;letter-spacing:.08em;border:5px solid var(--white);transform:rotate(-3deg);
+}
+#final.show .stamp{animation:stamp .7s .35s cubic-bezier(.2,1.6,.4,1) both}
+#final p{font-size:32px;margin-top:34px;opacity:.85}
+#final .pill{margin-top:30px}
+
+#confirm{left:460px;top:300px;width:1000px;padding:56px 60px;background:var(--white);text-align:center}
+#confirm h2{font-size:60px;font-weight:700}
+#confirm p{font-size:32px;margin-top:18px;color:#4A4E60}
+#confirm .row{display:flex;justify-content:center;gap:24px;margin-top:40px}
+#modalDim{position:absolute;inset:0;z-index:45;background:rgba(10,12,28,.6);display:none}
+#modalDim.show{display:block}
+
+#help{right:40px;top:130px;width:760px;padding:40px 46px;background:var(--dark);color:var(--white);z-index:61;border-color:rgba(255,255,255,.4)}
+#help h3{font-size:36px;font-weight:700;margin-bottom:18px}
+#help .rowk{display:flex;align-items:center;gap:22px;font-size:30px;line-height:1.2;padding:8px 0}
+#help kbd{background:var(--yellow);color:var(--dark);min-width:130px}
+
+/* ---------- Зменшений рух ---------- */
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.12s !important}
+  .cloud .sway,#noise .grain,#noise .scan,.badge .dot{animation:none !important}
+  #lea.happy{animation:none}
+}
+</style>
+</head>
+<body>
+<div id="stage">
+
+  <header class="header">
+    <div class="badges">
+      <div class="badge"><span class="dot"></span>СИГНАЛИ В ЕФІРІ</div>
+      <div class="badge license" id="licenseBadge">ЛІЦЕНЗІЯ НА ЕФІР</div>
+    </div>
+    <h1>Сачок для думок</h1>
+    <p class="sub">У голові Леї літають думки. Назви номер — і ми впіймаємо одну!</p>
+  </header>
+
+  <div id="field"></div>
+
+  <!-- Лея: зображення assets/lea.png або SVG-заглушка -->
+  <div id="lea">
+    <img id="leaImg" src="assets/lea.png" alt="Пілотка Лея з сачком">
+    <svg viewBox="0 0 460 700" aria-label="Пілотка Лея з сачком">
+      <!-- сачок -->
+      <g stroke="#14161F" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="96" y1="140" x2="232" y2="420" stroke-width="16"/>
+        <line x1="96" y1="140" x2="232" y2="420" stroke="#FFC629" stroke-width="7"/>
+        <path d="M40 120 Q20 230 95 260 Q160 250 165 140" fill="rgba(255,255,255,.22)" stroke-width="6"/>
+        <path d="M60 140 Q55 215 100 240 M95 120 Q100 200 110 250 M130 120 Q140 200 135 240 M48 175 Q100 195 160 175 M58 215 Q105 230 150 212" fill="none" stroke="rgba(20,22,31,.6)" stroke-width="3"/>
+        <ellipse cx="102" cy="122" rx="66" ry="30" fill="none" stroke-width="9" transform="rotate(-12 102 122)"/>
+      </g>
+      <!-- ноги -->
+      <g stroke="#14161F" stroke-width="7" stroke-linejoin="round">
+        <path d="M220 520 L210 650 L262 650 L270 530 Z" fill="#232845"/>
+        <path d="M292 530 L300 650 L352 650 L340 520 Z" fill="#232845"/>
+        <path d="M196 648 h74 q10 0 10 14 v12 h-92 v-12 q0 -14 8 -14z" fill="#14161F"/>
+        <path d="M292 648 h74 q10 0 10 14 v12 h-92 v-12 q0 -14 8 -14z" fill="#14161F"/>
+      </g>
+      <!-- куртка -->
+      <path d="M200 300 Q280 270 360 300 L384 540 Q280 560 178 540 Z" fill="#149A8C" stroke="#14161F" stroke-width="8" stroke-linejoin="round"/>
+      <path d="M280 300 L280 545" stroke="#14161F" stroke-width="5"/>
+      <rect x="296" y="380" width="44" height="34" rx="8" fill="#FFC629" stroke="#14161F" stroke-width="5"/>
+      <!-- рука з сачком -->
+      <path d="M212 320 Q170 360 214 420" fill="none" stroke="#14161F" stroke-width="38" stroke-linecap="round"/>
+      <path d="M212 320 Q170 360 214 420" fill="none" stroke="#149A8C" stroke-width="24" stroke-linecap="round"/>
+      <circle cx="222" cy="408" r="22" fill="#F3C6A0" stroke="#14161F" stroke-width="6"/>
+      <!-- друга рука -->
+      <path d="M352 320 Q400 400 372 470" fill="none" stroke="#14161F" stroke-width="38" stroke-linecap="round"/>
+      <path d="M352 320 Q400 400 372 470" fill="none" stroke="#149A8C" stroke-width="24" stroke-linecap="round"/>
+      <circle cx="370" cy="478" r="21" fill="#F3C6A0" stroke="#14161F" stroke-width="6"/>
+      <!-- шарф -->
+      <path d="M226 292 Q282 318 340 292 L344 318 Q282 344 222 318 Z" fill="#F0453A" stroke="#14161F" stroke-width="6" stroke-linejoin="round"/>
+      <path d="M330 310 Q390 300 430 330 Q400 344 372 340 Q392 360 410 378 Q360 372 326 330 Z" fill="#F0453A" stroke="#14161F" stroke-width="6" stroke-linejoin="round"/>
+      <!-- голова -->
+      <circle cx="282" cy="208" r="72" fill="#F3C6A0" stroke="#14161F" stroke-width="8"/>
+      <!-- коси -->
+      <path d="M214 232 Q186 270 200 300" fill="none" stroke="#5A3A2A" stroke-width="22" stroke-linecap="round"/>
+      <path d="M350 232 Q378 270 364 300" fill="none" stroke="#5A3A2A" stroke-width="22" stroke-linecap="round"/>
+      <!-- шолом пілота -->
+      <path d="M206 214 Q206 128 282 126 Q358 128 358 214 L346 214 Q336 162 282 160 Q228 162 218 214 Z" fill="#14161F"/>
+      <path d="M210 200 Q206 250 226 262 L240 256 Q228 230 232 204 Z" fill="#14161F"/>
+      <path d="M354 200 Q358 250 338 262 L324 256 Q336 230 332 204 Z" fill="#14161F"/>
+      <!-- окуляри -->
+      <rect x="214" y="150" width="136" height="14" rx="7" fill="#14161F"/>
+      <circle cx="252" cy="152" r="24" fill="#FFC629" stroke="#14161F" stroke-width="7"/>
+      <circle cx="312" cy="152" r="24" fill="#FFC629" stroke="#14161F" stroke-width="7"/>
+      <circle cx="245" cy="145" r="7" fill="#fff" opacity=".8"/>
+      <circle cx="305" cy="145" r="7" fill="#fff" opacity=".8"/>
+      <!-- обличчя -->
+      <circle cx="258" cy="212" r="7" fill="#14161F"/>
+      <circle cx="308" cy="212" r="7" fill="#14161F"/>
+      <path d="M262 238 Q284 256 306 238" fill="none" stroke="#14161F" stroke-width="6" stroke-linecap="round"/>
+      <circle cx="240" cy="234" r="9" fill="#F0453A" opacity=".35"/>
+      <circle cx="326" cy="234" r="9" fill="#F0453A" opacity=".35"/>
+    </svg>
+  </div>
+
+  <div id="jarWrap">
+    <div id="jar">
+      <svg viewBox="0 0 300 340">
+        <rect x="58" y="6" width="184" height="46" rx="14" fill="#14161F"/>
+        <rect x="70" y="16" width="160" height="10" rx="5" fill="#3A3F55"/>
+        <path d="M74 52 h152 v22 q60 22 60 80 v138 q0 40 -40 40 h-192 q-40 0 -40 -40 v-138 q0 -58 60 -80 z"
+              fill="rgba(242,243,247,.28)" stroke="#14161F" stroke-width="9" stroke-linejoin="round"/>
+        <path d="M40 160 q2 -40 40 -62" fill="none" stroke="rgba(255,255,255,.75)" stroke-width="10" stroke-linecap="round"/>
+        <path d="M34 190 v80" stroke="rgba(255,255,255,.55)" stroke-width="10" stroke-linecap="round"/>
+        <rect x="56" y="82" width="188" height="40" rx="10" fill="#14161F"/>
+        <text x="150" y="112" text-anchor="middle" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="28" font-weight="700" fill="#FFC629" letter-spacing="1">БАНКА ПІЛОТА</text>
+      </svg>
+      <div id="jarItems"></div>
+    </div>
+    <div class="counter" id="counter">Думки-напарники: <b id="count">0 / 3</b></div>
+  </div>
+
+  <div class="corner">
+    <button class="mini-btn" id="soundBtn" title="Звук">🔇</button>
+    <button class="mini-btn q" id="helpBtn" title="Гарячі клавіші">?</button>
+    <button class="mini-btn" id="resetBtn">Скинути</button>
+  </div>
+
+  <div id="dim"></div>
+
+  <div id="flyer"></div>
+
+  <div id="card" aria-live="polite">
+    <div id="cardLabel"></div>
+    <svg class="cardsvg" viewBox="0 0 1150 580"></svg>
+    <div class="masked" id="noise"><div class="grain"></div><div class="scan"></div></div>
+    <div class="masked" id="flash"></div>
+    <div id="cardNum"></div>
+    <div class="textbox" id="textbox"><div id="cardText"></div></div>
+  </div>
+
+  <div class="slot" id="hint"></div>
+
+  <div id="controls" class="off"></div>
+
+  <div id="net">
+    <svg viewBox="0 0 340 340">
+      <g stroke="#14161F" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="180" y1="180" x2="330" y2="330" stroke-width="18"/>
+        <line x1="180" y1="180" x2="330" y2="330" stroke="#FFC629" stroke-width="8"/>
+        <circle cx="110" cy="110" r="100" fill="rgba(255,255,255,.18)" stroke-width="12"/>
+        <path d="M40 40 L180 180 M180 40 L40 180 M110 10 V210 M10 110 H210 M40 70 Q110 95 180 70 M40 150 Q110 125 180 150" fill="none" stroke="rgba(20,22,31,.55)" stroke-width="4"/>
+        <circle cx="110" cy="110" r="100" fill="none" stroke="#14161F" stroke-width="12"/>
+      </g>
+    </svg>
+  </div>
+
+  <div id="modalDim"></div>
+  <div class="modal" id="final">
+    <h2>Детектор думок налаштовано!</h2>
+    <div class="stamp">ЛІЦЕНЗІЯ НА ЕФІР</div>
+    <p>Можна ловити ще — у небі лишилися думки.</p>
+    <button class="pill primary" data-act="finalClose">Летимо далі</button>
+  </div>
+  <div class="modal" id="confirm">
+    <h2>Почати гру з нуля?</h2>
+    <p>Усі думки повернуться в небо, а банка спорожніє.</p>
+    <div class="row">
+      <button class="pill primary" data-act="resetYes">Так, скинути</button>
+      <button class="pill" data-act="resetNo">Ні</button>
+    </div>
+  </div>
+  <div class="modal" id="help">
+    <h3>Пульт викладача</h3>
+    <div class="rowk"><kbd>1–8</kbd>впіймати хмаринку</div>
+    <div class="rowk"><kbd>H</kbd>підказка</div>
+    <div class="rowk"><kbd>Пробіл</kbd>перетворити думку</div>
+    <div class="rowk"><kbd>Enter</kbd>покласти в банку</div>
+    <div class="rowk"><kbd>Esc</kbd>закрити без перетворення</div>
+    <div class="rowk"><kbd>R</kbd>скинути гру</div>
+    <div class="rowk"><kbd>?</kbd>ця шпаргалка</div>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   БАНК ДУМОК — редагуйте тут.
+   pest    — думка-шкідник (темна хмаринка)
+   hint    — підказка-питання (жовта картка, клавіша H)
+   partner — думка-напарник (жовта хмаринка після перетворення)
+   ========================================================= */
+const THOUGHTS = [
+  { pest: "З мене будуть сміятися.",
+    hint: "Над чим зазвичай сміються — над людиною чи над ситуацією? І скільки це триває?",
+    partner: "Навіть якщо хтось хихикне, за 5 хвилин усі забудуть. А я вже відповів." },
+  { pest: "Зараз скажу щось тупе.",
+    hint: "Чи хтось у класі ніколи не казав дурниць?",
+    partner: "Тупих відповідей не буває, бувають спроби. Скажу, як думаю." },
+  { pest: "Голос затремтить, і всі почують.",
+    hint: "Як думаєш, чи хвилюються інші, коли відповідають?",
+    partner: "Хвилюватися — це нормально. Усі хвилюються, просто не всі це показують." },
+  { pest: "Я почервонію, і всі побачать.",
+    hint: "Чи можна хвилюватися і все одно відповідати?",
+    partner: "Так, я хвилююсь. І все одно можу сказати." },
+  { pest: "Усі дивляться тільки на мене.",
+    hint: "Чому люди дивляться на того, хто говорить?",
+    partner: "Вони дивляться, бо слухають, а не шукають помилку." },
+  { pest: "Краще промовчу — так безпечніше.",
+    hint: "Що станеться, якщо промовчати?",
+    partner: "Якщо промовчу, ніхто не дізнається, що я це знаю." },
+  { pest: "Інші відповідають краще, ніж я.",
+    hint: "Чи це змагання?",
+    partner: "Моя відповідь не гірша, вона просто моя." },
+  { pest: "Зараз хтось скаже „крінж“ або кине скрін у чат класу.",
+    hint: "Скільки днів люди пам'ятають чужі „крінжі“?",
+    partner: "Завтра буде новий мем. А сміливість залишиться моєю." },
+];
+const GOAL = 3;                 // скільки думок-напарників потрібно для фіналу
+
+/* ---------- Розкладка хмаринок (координати в базі 1920×1080) ---------- */
+const SLOTS = [
+  [60,350],[370,330],[680,372],[990,342],
+  [100,652],[410,684],[720,640],[1010,672],
+];
+const CARD = { x:300, y:120, w:1150, h:580 };
+
+const RM = window.matchMedia('(prefers-reduced-motion: reduce)');
+const $ = s => document.querySelector(s);
+const stage = $('#stage'), field = $('#field'), card = $('#card'), cardText = $('#cardText'),
+      cardNum = $('#cardNum'), cardLabel = $('#cardLabel'), hintEl = $('#hint'), controls = $('#controls'), dim = $('#dim'), net = $('#net'),
+      lea = $('#lea'), jar = $('#jar'), jarItems = $('#jarItems'), countEl = $('#count');
+
+/* ---------- Масштабування сцени ---------- */
+function fit(){
+  const s = Math.min(innerWidth/1920, innerHeight/1080);
+  stage.style.transform = `scale(${s}) translate(-50%,-50%)`;
+}
+addEventListener('resize', fit); fit();
+
+/* ---------- Лея: картинка або SVG ---------- */
+const leaImg = $('#leaImg');
+leaImg.addEventListener('error', () => lea.classList.add('fallback'));
+if (leaImg.complete && !leaImg.naturalWidth) lea.classList.add('fallback');
+
+/* ---------- Генератор форми хмаринки ---------- */
+function rng(seed){ return () => (seed = (seed*16807) % 2147483647) / 2147483647; }
+function cloudPath(w, h, n, margin, seed, ox=0, oy=0){
+  const r = rng(seed), cx = w/2, cy = h/2, rx = w/2 - margin, ry = h/2 - margin;
+  const pts = [];
+  for (let i=0;i<n;i++){
+    const a = -Math.PI/2 + i*2*Math.PI/n + (r()-.5)*0.18;
+    pts.push([cx + rx*Math.cos(a) + ox, cy + ry*Math.sin(a) + oy]);
+  }
+  let d = `M${pts[0][0].toFixed(1)} ${pts[0][1].toFixed(1)}`;
+  for (let i=0;i<n;i++){
+    const p = pts[i], q = pts[(i+1)%n];
+    const chord = Math.hypot(q[0]-p[0], q[1]-p[1]);
+    const rad = chord*(0.56 + r()*0.1);
+    d += ` A${rad.toFixed(1)} ${rad.toFixed(1)} 0 0 1 ${q[0].toFixed(1)} ${q[1].toFixed(1)}`;
+  }
+  return d + 'Z';
+}
+const SMALL_D = cloudPath(270, 185, 9, 26, 7, 6, 6);
+const CARD_D  = cloudPath(1150, 580, 17, 52, 11);
+const MINI_D  = cloudPath(66, 46, 7, 8, 5);
+
+// Картка
+card.querySelector('.cardsvg').innerHTML =
+  `<path class="fill" d="${CARD_D}"/>
+   <circle class="bub" cx="1118" cy="566" r="24"/><circle class="bub" cx="1162" cy="608" r="14"/>`;
+const maskUrl = `url("data:image/svg+xml,${encodeURIComponent(
+  `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1150 580' preserveAspectRatio='none'><path d='${CARD_D}' fill='black'/></svg>`)}")`;
+document.querySelectorAll('.masked').forEach(m => { m.style.webkitMaskImage = maskUrl; m.style.maskImage = maskUrl; });
+
+// Текстура «радіошуму» (генерується один раз)
+(function(){
+  const c = document.createElement('canvas'); c.width = c.height = 256;
+  const x = c.getContext('2d'), img = x.createImageData(256,256);
+  for (let i=0;i<img.data.length;i+=4){
+    const v = Math.random()*255;
+    img.data[i]=img.data[i+1]=img.data[i+2]=v; img.data[i+3]= Math.random()<.5 ? 0 : 160;
+  }
+  x.putImageData(img,0,0);
+  $('#noise .grain').style.backgroundImage = `url(${c.toDataURL()})`;
+})();
+
+/* ---------- Стан гри ---------- */
+const state = {
+  used: new Set(),     // номери, які вже в банці
+  jar: 0,
+  open: -1,            // індекс відкритої хмаринки
+  phase: 'idle',       // idle | pest | partner
+  hint: false, busy: false,
+  finalShown: false, modal: null, help: false,
+};
+
+/* ---------- Поле хмаринок ---------- */
+const clouds = [];
+function buildField(){
+  field.innerHTML = '';
+  clouds.length = 0;
+  SLOTS.forEach(([x,y], i) => {
+    const b = document.createElement('button');
+    b.className = 'cloud';
+    b.style.left = x+'px'; b.style.top = y+'px';
+    b.setAttribute('aria-label', 'Хмаринка ' + (i+1));
+    const amp = 8 + (i*5)%9, dur = 5.2 + (i*0.73)%2.6;
+    b.innerHTML = `<div class="sway" style="--amp:${amp}px;--dx:${(i%2?-1:1)*(3+i%4)}px;--dur:${dur}s;--delay:${-i*1.37}s;--r1:${i%2?1.2:-1.4}deg;--r2:${i%2?-1.4:1.2}deg">
+        <svg viewBox="0 0 310 240"><path class="fill" d="${SMALL_D}"/>
+          <circle class="bub" cx="268" cy="206" r="13"/><circle class="bub" cx="294" cy="228" r="8"/></svg>
+        <div class="num">${i+1}<small>…</small></div></div>`;
+    b.addEventListener('mousedown', e => e.preventDefault());
+    b.addEventListener('click', () => openCloud(i));
+    field.appendChild(b); clouds.push(b);
+  });
+}
+
+/* ---------- Звук (Web Audio, вимкнено за замовчуванням) ---------- */
+let soundOn = false, actx = null;
+function audio(){ if (!actx) actx = new (window.AudioContext||window.webkitAudioContext)(); if (actx.state==='suspended') actx.resume(); return actx; }
+function whoosh(){
+  if (!soundOn) return;
+  const a = audio(), t = a.currentTime, len = .5;
+  const buf = a.createBuffer(1, a.sampleRate*len, a.sampleRate), d = buf.getChannelData(0);
+  for (let i=0;i<d.length;i++) d[i] = Math.random()*2-1;
+  const src = a.createBufferSource(); src.buffer = buf;
+  const f = a.createBiquadFilter(); f.type='bandpass'; f.Q.value = 1.2;
+  f.frequency.setValueAtTime(350,t); f.frequency.exponentialRampToValueAtTime(1800,t+.22); f.frequency.exponentialRampToValueAtTime(500,t+len);
+  const g = a.createGain(); g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.09,t+.12); g.gain.exponentialRampToValueAtTime(0.0001,t+len);
+  src.connect(f).connect(g).connect(a.destination); src.start(t); src.stop(t+len);
+}
+function ding(){
+  if (!soundOn) return;
+  const a = audio(), t = a.currentTime;
+  [[1318.5,0],[1975.5,.07]].forEach(([fr,dl]) => {
+    const o = a.createOscillator(), g = a.createGain();
+    o.type='sine'; o.frequency.value = fr;
+    g.gain.setValueAtTime(0.0001,t+dl); g.gain.exponentialRampToValueAtTime(0.07,t+dl+.015); g.gain.exponentialRampToValueAtTime(0.0001,t+dl+1.1);
+    o.connect(g).connect(a.destination); o.start(t+dl); o.stop(t+dl+1.2);
+  });
+}
+$('#soundBtn').addEventListener('click', e => {
+  soundOn = !soundOn; e.currentTarget.textContent = soundOn ? '🔊' : '🔇';
+  if (soundOn) audio();
+});
+
+/* ---------- Допоміжне ---------- */
+const play = (el, frames, opts) => el.animate(frames, Object.assign({fill:'forwards', easing:'ease'}, opts)).finished;
+const wait = ms => new Promise(r => setTimeout(r, ms));
+const motion = () => !RM.matches;
+
+function fitText(){
+  const box = $('#textbox');
+  let size = 68;
+  cardText.style.fontSize = size+'px';
+  while (size > 40 && (cardText.scrollHeight > box.clientHeight || cardText.scrollWidth > box.clientWidth)){
+    size -= 2; cardText.style.fontSize = size+'px';
+  }
+}
+function setCardText(t){ cardText.textContent = t; fitText(); }
+
+function cloudCenter(i){ const [x,y] = SLOTS[i]; return [x+135, y+92]; }
+function flipFrom(i){ // трансформація, яка ставить картку на місце хмаринки i
+  const [cx,cy] = cloudCenter(i), s = 270/CARD.w;
+  return `translate(${cx-(CARD.x+CARD.w/2)}px, ${cy-(CARD.y+CARD.h/2)}px) scale(${s})`;
+}
+
+/* ---------- Пульт: які кнопки показувати ---------- */
+function btn(act, label, cls=''){ return `<button class="pill ${cls}" data-act="${act}">${label}</button>`; }
+function renderControls(){
+  if (state.phase === 'pest'){
+    controls.innerHTML =
+      btn('hint', 'Підказка', state.hint ? 'on' : '') +
+      btn('transform', 'Перетворити', 'primary') +
+      btn('close', 'Закрити', 'ghost');
+  } else if (state.phase === 'partner'){
+    controls.innerHTML =
+      btn('jar', 'В банку', 'primary');
+  } else controls.innerHTML = '';
+  controls.classList.toggle('off', state.phase === 'idle');
+}
+stage.addEventListener('mousedown', e => { if (e.target.closest('button')) e.preventDefault(); });
+stage.addEventListener('click', e => {
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  e.stopPropagation();
+  ({ hint:toggleHint, transform:()=>transform(), close:closeCloud, jar:toJar,
+     finalClose:closeFinal, resetYes:doReset, resetNo:closeConfirm })[b.dataset.act]?.();
+});
+dim.addEventListener('click', () => { if (state.phase === 'partner') toJar(); });
+
+/* ---------- 1. Ловимо хмаринку ---------- */
+async function openCloud(i){
+  if (state.modal === 'final') closeFinal();
+  if (state.busy || state.modal || state.open >= 0) return;
+  if (state.used.has(i)){ clouds[i].classList.remove('nope'); void clouds[i].offsetWidth; clouds[i].classList.add('nope'); return; }
+  closeHelp();
+  state.busy = true; state.open = i; state.phase = 'idle'; state.hint = false;
+  const cl = clouds[i];
+
+  // картка у «закритому» вигляді (лише номер), текст думки ще не в DOM
+  card.className = 'is-closed'; cardNum.textContent = i+1; cardText.textContent = ''; cardLabel.textContent = '';
+  whoosh();
+
+  if (motion()){
+    // сачок вилітає з рук Леї і накриває хмаринку
+    const [cx,cy] = cloudCenter(i);
+    const sx = 1334, sy = 423;
+    net.style.left = (cx-110)+'px'; net.style.top = (cy-110)+'px';
+    await play(net, [
+      {opacity:0, transform:`translate(${sx-cx}px,${sy-cy}px) rotate(-50deg) scale(.6)`},
+      {opacity:1, offset:.15},
+      {opacity:1, transform:`translate(${(sx-cx)*.4}px,${(sy-cy)*.4 - 90}px) rotate(-20deg) scale(.9)`, offset:.6},
+      {opacity:1, transform:'translate(0,0) rotate(0) scale(1)'}
+    ], {duration:520, easing:'ease-out'});
+    await play(cl, [{transform:'none'},{transform:'translateY(26px) scale(.82)'}], {duration:200, easing:'ease-in'});
+    cl.classList.add('hidden'); cl.getAnimations().forEach(a=>a.cancel());
+
+    card.classList.add('show');
+    dim.classList.add('on');
+    const netGo = play(net, [{opacity:1, transform:'none'},{opacity:0, transform:'translateY(-40px) rotate(25deg) scale(1.2)'}], {duration:400});
+    await play(card, [
+      {transform: flipFrom(i).replace(/scale\(([\d.]+)\)/, (m,s)=>`scale(${s*.82})`)},
+      {transform:'translate(0,-30px) scale(1.04)', offset:.8},
+      {transform:'none'}
+    ], {duration:650, easing:'cubic-bezier(.3,.7,.3,1)'});
+    card.getAnimations().forEach(a=>a.cancel());
+    await netGo; net.getAnimations().forEach(a=>a.cancel()); net.style.opacity = 0;
+  } else {
+    cl.classList.add('hidden'); card.classList.add('show'); dim.classList.add('on');
+    await play(card, [{opacity:0},{opacity:1}], {duration:200}); card.getAnimations().forEach(a=>a.cancel());
+  }
+
+  // розкриваємо: думка-шкідник
+  cardText.style.opacity = 0;
+  card.className = 'show is-pest';
+  cardLabel.textContent = 'Думка-шкідник';
+  setCardText(THOUGHTS[i].pest);
+  await play(cardText, [{opacity:0, transform:'translateY(14px)'},{opacity:1, transform:'none'}], {duration: motion()?400:150});
+  cardText.style.opacity = 1; cardText.getAnimations().forEach(a=>a.cancel());
+  state.phase = 'pest'; state.busy = false;
+  renderControls();
+}
+
+/* ---------- 2. Підказка ---------- */
+function toggleHint(){
+  if (state.busy || state.phase !== 'pest') return;
+  state.hint = !state.hint;
+  if (state.hint) hintEl.innerHTML = '<b>Підказка:</b> ' + escapeHtml(THOUGHTS[state.open].hint);
+  hintEl.classList.toggle('show', state.hint);
+  if (!state.hint) setTimeout(() => { if (!state.hint) hintEl.innerHTML = ''; }, 400);
+  renderControls();
+}
+function hideHint(){ state.hint = false; hintEl.classList.remove('show'); setTimeout(()=>{ if(!state.hint) hintEl.innerHTML=''; },400); }
+function escapeHtml(s){ return s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+/* ---------- 3. Перетворення ---------- */
+function flash(){ play($('#flash'), [{opacity:0},{opacity:.95, offset:.3},{opacity:0}], {duration: motion()?700:250}); }
+async function transform(){
+  if (state.busy || state.phase !== 'pest') return;
+  state.busy = true; hideHint();
+  controls.classList.add('off');
+  ding(); flash();
+  if (motion()) play(card, [{transform:'none'},{transform:'scale(1.05)', offset:.35},{transform:'scale(.98)', offset:.7},{transform:'none'}], {duration:650}).then(()=>card.getAnimations().forEach(a=>a.cancel()));
+  await play(cardText, [{opacity:1},{opacity:0}], {duration:200});
+  await wait(60);
+  card.className = 'show is-partner';
+  cardLabel.textContent = 'Думка-напарник';
+  setCardText(THOUGHTS[state.open].partner);
+  sparks(card, 14);
+  await play(cardText, [{opacity:0, transform:'scale(.9)'},{opacity:1, transform:'none'}], {duration:450, easing:'cubic-bezier(.2,1.4,.4,1)'});
+  cardText.getAnimations().forEach(a=>a.cancel());
+  state.phase = 'partner'; state.busy = false;
+  renderControls();
+}
+const STAR = `<svg viewBox="-30 -30 60 60"><path d="M0-28 C4-6 6-4 28 0 C6 4 4 6 0 28 C-4 6 -6 4 -28 0 C-6-4 -4-6 0-28Z" fill="#FFC629" stroke="#14161F" stroke-width="4" stroke-linejoin="round"/></svg>`;
+function sparks(target, n, box){
+  if (!motion()) return;
+  const b = box || CARD;
+  for (let k=0;k<n;k++){
+    const s = document.createElement('div'); s.className = 'spark'; s.innerHTML = STAR;
+    const a = (k/n)*Math.PI*2 + Math.random()*.3;
+    const x = b.x + b.w/2 + Math.cos(a)*(b.w/2+10)*(.85+Math.random()*.2);
+    const y = b.y + b.h/2 + Math.sin(a)*(b.h/2+10)*(.85+Math.random()*.2);
+    s.style.left = x+'px'; s.style.top = y+'px';
+    stage.appendChild(s);
+    const sc = .6 + Math.random()*.8;
+    play(s, [{transform:'scale(0) rotate(0)', opacity:1},{transform:`scale(${sc}) rotate(45deg)`, opacity:1, offset:.4},{transform:`translate(${Math.cos(a)*40}px,${Math.sin(a)*40}px) scale(0) rotate(90deg)`, opacity:0}],
+         {duration:1100 + Math.random()*400, delay:k*25, easing:'ease-out'}).then(()=>s.remove());
+  }
+}
+
+/* ---------- 5. В банку ---------- */
+async function toJar(){
+  if (state.busy || state.phase !== 'partner') return;
+  state.busy = true;
+  const i = state.open;
+  state.phase = 'idle'; renderControls();
+  dim.classList.remove('on');
+  whoosh();
+  // центр банки в координатах сцени
+  const jx = 1920-40-130, jy = 1080-26-420+175;
+  const s = 70/CARD.w;
+  if (motion()){
+    await play(card, [
+      {transform:'none', opacity:1},
+      {transform:`translate(${(jx-(CARD.x+CARD.w/2))*.45}px, ${(jy-(CARD.y+CARD.h/2))*.45 - 140}px) scale(.45)`, opacity:1, offset:.5},
+      {transform:`translate(${jx-(CARD.x+CARD.w/2)}px, ${jy-(CARD.y+CARD.h/2)}px) scale(${s})`, opacity:.6}
+    ], {duration:800, easing:'ease-in'});
+  } else {
+    await play(card, [{opacity:1},{opacity:0}], {duration:200});
+  }
+  card.className = ''; card.getAnimations().forEach(a=>a.cancel());
+  cardText.textContent = ''; cardLabel.textContent = '';
+
+  state.used.add(i); state.jar++;
+  clouds[i].classList.remove('hidden'); clouds[i].classList.add('used');
+  addMini(state.jar-1);
+  jar.classList.remove('bump'); void jar.offsetWidth; jar.classList.add('bump');
+  updateCounter();
+  state.open = -1; state.busy = false;
+
+  if (state.jar === GOAL && !state.finalShown) celebrate();
+}
+function addMini(k){
+  const m = document.createElement('div'); m.className = 'mini';
+  const col = k%3, row = Math.floor(k/3);
+  m.style.left = (col*62 + (row%2 ? 30 : 0)) + 'px';
+  m.style.top = (128 - row*42) + 'px';
+  if (row%2 && col===2) m.style.left = (2*62 - 28)+'px';
+  m.innerHTML = `<svg viewBox="0 0 66 46"><path d="${MINI_D}" fill="#FFC629" stroke="#14161F" stroke-width="4" stroke-linejoin="round"/></svg>`;
+  jarItems.appendChild(m);
+}
+function updateCounter(){
+  countEl.textContent = `${state.jar} / ${GOAL}`;
+  $('#counter').classList.toggle('full', state.jar >= GOAL);
+}
+
+/* ---------- Закрити без перетворення ---------- */
+async function closeCloud(){
+  if (state.busy || state.phase !== 'pest') return;
+  state.busy = true; hideHint();
+  const i = state.open;
+  state.phase = 'idle'; renderControls();
+  await play(cardText, [{opacity:1},{opacity:0}], {duration:180});
+  card.className = 'show is-closed'; cardText.textContent = ''; cardLabel.textContent = '';
+  dim.classList.remove('on');
+  if (motion()) await play(card, [{transform:'none'},{transform:flipFrom(i)}], {duration:520, easing:'cubic-bezier(.5,0,.3,1)'});
+  else await play(card, [{opacity:1},{opacity:0}], {duration:180});
+  card.className = ''; card.getAnimations().forEach(a=>a.cancel());
+  cardText.getAnimations().forEach(a=>a.cancel()); cardText.style.opacity = 1;
+  clouds[i].classList.remove('hidden');
+  state.open = -1; state.busy = false;
+}
+
+/* ---------- Фінал ---------- */
+function celebrate(){
+  state.finalShown = true;
+  lea.classList.remove('happy'); void lea.offsetWidth; lea.classList.add('happy');
+  sparks(lea, 12, {x:1250, y:310, w:380, h:580});
+  ding(); setTimeout(ding, 260);
+  $('#final').classList.add('show'); state.modal = 'final';
+  $('#licenseBadge').classList.add('show');
+}
+function closeFinal(){ $('#final').classList.remove('show'); if (state.modal==='final') state.modal = null; }
+
+/* ---------- Скидання ---------- */
+function askReset(){
+  if (state.busy) return;
+  closeFinal(); closeHelp();
+  state.modal = 'confirm';
+  $('#modalDim').classList.add('show'); $('#confirm').classList.add('show');
+}
+function closeConfirm(){ $('#modalDim').classList.remove('show'); $('#confirm').classList.remove('show'); state.modal = null; }
+function doReset(){
+  closeConfirm();
+  stage.getAnimations({subtree:true}).forEach(a => { if (a instanceof CSSAnimation === false) a.cancel(); });
+  document.querySelectorAll('.spark').forEach(s=>s.remove());
+  card.className = ''; cardText.textContent = ''; cardLabel.textContent = ''; cardText.style.opacity = 1;
+  hideHint(); dim.classList.remove('on'); net.style.opacity = 0;
+  Object.assign(state, {used:new Set(), jar:0, open:-1, phase:'idle', hint:false, busy:false, finalShown:false, modal:null});
+  jarItems.innerHTML = ''; updateCounter(); renderControls();
+  lea.classList.remove('happy'); $('#licenseBadge').classList.remove('show');
+  buildField();
+}
+$('#resetBtn').addEventListener('click', askReset);
+
+/* ---------- Шпаргалка ---------- */
+function toggleHelp(){ state.help = !state.help; $('#help').classList.toggle('show', state.help); }
+function closeHelp(){ state.help = false; $('#help').classList.remove('show'); }
+$('#helpBtn').addEventListener('click', toggleHelp);
+
+/* ---------- Гарячі клавіші ---------- */
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  const c = e.code;
+  const num = /^(Digit|Numpad)([1-8])$/.exec(c);
+
+  if (state.modal === 'confirm'){
+    if (c === 'Enter' || c === 'NumpadEnter'){ e.preventDefault(); doReset(); }
+    else if (c === 'Escape'){ e.preventDefault(); closeConfirm(); }
+    return;
+  }
+  if (state.modal === 'final' && (c === 'Enter' || c === 'NumpadEnter' || c === 'Escape' || c === 'Space')){ e.preventDefault(); closeFinal(); return; }
+
+  if (num){ e.preventDefault(); openCloud(+num[2]-1); return; }
+  switch (c){
+    case 'KeyH': e.preventDefault(); toggleHint(); break;
+    case 'Space': e.preventDefault(); transform(); break;
+    case 'Enter': case 'NumpadEnter': e.preventDefault(); toJar(); break;
+    case 'Escape':
+      e.preventDefault();
+      if (state.help) closeHelp();
+      else if (state.phase === 'pest') closeCloud();
+      else if (state.phase === 'partner') toJar();
+      break;
+    case 'KeyR': e.preventDefault(); if (!state.busy) askReset(); break;
+    case 'Slash': if (e.shiftKey){ e.preventDefault(); toggleHelp(); } break;
+  }
+});
+// «?» на будь-якій розкладці
+document.addEventListener('keypress', e => { if (e.key === '?' && e.code !== 'Slash') toggleHelp(); });
+
+buildField();
+</script>
+</body>
+</html>
